@@ -1,0 +1,20 @@
+{
+  "name": "skill-bar",
+  "version": "0.4.0",
+  "description": "A skill menu for the prompt that auto-discovers your personal, project and plugin skills, groups them by source, and inserts one on click.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Language of the skill bar. auto follows your system language.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "zh-TW"
+      ]
+    }
+  },
+  "license": "MIT"
+}

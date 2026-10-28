@@ -1,0 +1,5 @@
+{
+  "name": "claude-skill-bar",
+  "owner": { "name": "m9b9znrygw-star" },
+  "plugins": [{ "name": "skill-bar", "source": "./" }]
+}
