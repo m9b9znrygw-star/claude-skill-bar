@@ -328,19 +328,30 @@ const rev = atom({ plugin: 'skill-bar', key: 'rev' } as const, 0)
 const language = (option: unknown, system: string): Lang => {
   if (option === 'en') return 'en'
   if (option === 'zh-TW') return 'zh'
-  return /^zh/i.test(system) ? 'zh' : 'en'
+  return /^[("\s]*zh/i.test(system) ? 'zh' : 'en'
 }
+
+// The system language: LC_ALL or LANG when set, else (the desktop app sets
+// neither) the first macOS preferred language. Asked once per module load.
+let systemLanguage: Promise<string> | undefined
+const systemLang = (env: () => Promise<string>, run: Host['run']) =>
+  (systemLanguage ??= (async () => {
+    const fromEnv = await env().catch(() => '')
+    if (fromEnv) return fromEnv
+    const out = await run(['defaults', 'read', '-g', 'AppleLanguages'], { timeoutMs: 3000 }).catch(() => undefined)
+    return out?.stdout ?? ''
+  })())
 
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
-    const L = TEXT[language(options.language, (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '')]
+    const L = TEXT[language(options.language, await systemLang(async () => (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '', (argv, init) => $.process.run(argv, init)))]
     await $.command.register({ name: 'skillbar', description: L.commandDesc })
 
     return next(e)
   })
 
   on('command.run', { command: 'skillbar' }, async $ => {
-    const L = TEXT[language(options.language, (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '')]
+    const L = TEXT[language(options.language, await systemLang(async () => (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '', (argv, init) => $.process.run(argv, init)))]
     await $.ui.open({ id: PANE, title: L.title, focus: true })
 
     return { text: L.opened }
@@ -350,7 +361,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
 
-    const L = TEXT[language(options.language, (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '')]
+    const L = TEXT[language(options.language, await systemLang(async () => (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '', (argv, init) => $.process.run(argv, init)))]
     const { Box, Button, Text } = $.ui.resolve(e)
 
     return (
@@ -373,7 +384,7 @@ export const register: Register = (on, options) => {
       run: (argv, init) => $.process.run(argv, init),
     }
     const { Box, Button, Input, Text } = $.ui.resolve(e)
-    const L = TEXT[language(options.language, (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '')]
+    const L = TEXT[language(options.language, await systemLang(async () => (await $.env.get('LC_ALL')) || (await $.env.get('LANG')) || '', (argv, init) => $.process.run(argv, init)))]
     await read($, rev)
 
     const scannedCats = await categories(host)

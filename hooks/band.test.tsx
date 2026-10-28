@@ -103,3 +103,14 @@ test('the band has an entry button', async ($, on) => {
   expect(await ui.find({ type: 'Button', text: /Skills/ })).toBeTruthy()
   await ui.unmount()
 })
+
+test('with no LANG, auto follows the macOS preferred language', async ($, on) => {
+  machine(on)
+  on('process.run', (_: unknown, e: { argv: string[] }) => ({
+    value: { exitCode: 0, stderr: '', stdout: e.argv[0] === 'defaults' ? '(\n    "zh-Hant-TW"\n)' : '' },
+  }))
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.input({ plugin: 'skill-bar', key: 'search', text: '壓縮對話' })
+  expect(await ui.find({ type: 'Button', text: /compact/ })).toBeTruthy()
+  await ui.unmount()
+})
