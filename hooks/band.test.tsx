@@ -22,7 +22,7 @@ const DIRS: Record<string, string[]> = {
   '/h/.claude/plugins/marketplaces/m/plugins/shop/skills': ['cart'],
 }
 
-const machine = (on: any, stored: Record<string, unknown> = {}) => {
+const machine = (on: any, stored: Record<string, unknown> = {}, appleLanguages = '') => {
   const writes: Record<string, unknown> = {}
   on('env.get', (_: unknown, e: { name: string }) => ({ value: e.name === 'HOME' ? '/h' : undefined }))
   on('fs.list', (_: unknown, e: { path: string }) => ({ value: (DIRS[e.path] ?? []).map(name => ({ name, kind: 'dir', size: 0, mtimeMs: 0, isLink: false })) }))
@@ -30,7 +30,9 @@ const machine = (on: any, stored: Record<string, unknown> = {}) => {
     if (e.path in FILES) return { value: FILES[e.path] }
     return { value: '' }
   })
-  on('process.run', () => ({ value: { exitCode: 0, stdout: '', stderr: '' } }))
+  on('process.run', (_: unknown, e: { argv: string[] }) => ({
+    value: { exitCode: 0, stderr: '', stdout: e.argv[0] === 'defaults' ? appleLanguages : '' },
+  }))
   on('store.get', (_: unknown, e: { key: string }) => ({ value: stored[e.key] }))
   on('store.set', (_: unknown, e: { key: string; value: unknown }) => {
     writes[e.key] = e.value
@@ -105,10 +107,7 @@ test('the band has an entry button', async ($, on) => {
 })
 
 test('with no LANG, auto follows the macOS preferred language', async ($, on) => {
-  machine(on)
-  on('process.run', (_: unknown, e: { argv: string[] }) => ({
-    value: { exitCode: 0, stderr: '', stdout: e.argv[0] === 'defaults' ? '(\n    "zh-Hant-TW"\n)' : '' },
-  }))
+  machine(on, {}, '(\n    "zh-Hant-TW"\n)')
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.input({ plugin: 'skill-bar', key: 'search', text: '壓縮對話' })
   expect(await ui.find({ type: 'Button', text: /compact/ })).toBeTruthy()
